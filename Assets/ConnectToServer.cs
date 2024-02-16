@@ -16,7 +16,7 @@ public class ConnectToServer : MonoBehaviourPunCallbacks
         if (!string.IsNullOrEmpty(_playerName.text))
         {
             PhotonNetwork.NickName = _playerName.text;
-            _buttonText.text = "Entrando na sala...";
+            _buttonText.text = "Entrando no servidor...";
             PhotonNetwork.AutomaticallySyncScene = true;
             PhotonNetwork.ConnectUsingSettings();
         }

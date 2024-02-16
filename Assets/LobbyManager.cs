@@ -48,7 +48,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     {
         if (!string.IsNullOrEmpty(_roomNameInput.text))
         {
-            PhotonNetwork.JoinOrCreateRoom(_roomNameInput.text, new RoomOptions() { MaxPlayers = 20, BroadcastPropsChangeToAll = true }, TypedLobby.Default);
+            PhotonNetwork.JoinOrCreateRoom(_roomNameInput.text, new RoomOptions() { MaxPlayers = 20, BroadcastPropsChangeToAll = true, PublishUserId = true }, TypedLobby.Default);
         }
     }
 
@@ -90,7 +90,6 @@ public class LobbyManager : MonoBehaviourPunCallbacks
 
     public void JoinRoom(string roomName)
     {
-        Debug.Log($"Joining room {roomName}");
         PhotonNetwork.JoinRoom(roomName);
     }
 
@@ -165,7 +164,6 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         var player = _playerItems.FirstOrDefault(x => x.Player == targetPlayer);
         if (player != null)
         {
-            Debug.Log($"Player {player.Player.NickName} is ready");
             bool isReady = false;
             if (targetPlayer.CustomProperties.ContainsKey(PlayerIsReadyProperty))
             {
@@ -184,7 +182,6 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     {
         foreach (var player in _playerItems)
         {
-            Debug.Log($"Player {player.Player.NickName} is ready = {player.IsReady}");
             if (!player.IsReady) return false;
         }
         return true;
