@@ -39,7 +39,7 @@ public class PlayerButton : MonoBehaviour
     //        PhotonNetwork.SetPlayerCustomProperties(Player.CustomProperties);
     //    }
     //}
-    public int PlayerAvatar { get; private set; }
+    public Avatar PlayerAvatar { get; private set; }
     public bool IsLocalPlayer { get; set; }
     public bool IsPlayerLost { get; set; } = false;
 
@@ -79,17 +79,19 @@ public class PlayerButton : MonoBehaviour
         Player = player;
         //IsPlayerTurn = false;
         if(player.CustomProperties.ContainsKey(Constants.PlayerAvatarProperty))
-            PlayerAvatar = (int)player.CustomProperties[Constants.PlayerAvatarProperty];
+            PlayerAvatar = Avatars.AvailableAvatars[(int)player.CustomProperties[Constants.PlayerAvatarProperty]];
         else
-            PlayerAvatar = 0;
+            PlayerAvatar = Avatars.AvailableAvatars[0];
     }
 
-    public void TakeDamage(AttackOption attackOption)
+    public Damage TakeDamage(AttackOption attackOption)
     {
-        HealthPoints += attackOption.Damage();
+        var damage = attackOption.Damage(PlayerAvatar);
+        HealthPoints += damage.DamageToApply;
         TakeDamageEvent takeDamageEvent = new TakeDamageEvent(Player.UserId, _healthPoints);
         object[] content = new object[] { takeDamageEvent.PlayerId, takeDamageEvent.NewHealth };
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerTakeDamage, content, RaiseEventOptions.Default, SendOptions.SendReliable);
+        return damage;
     }
 
     public void SetHP(float hp)

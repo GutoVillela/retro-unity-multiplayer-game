@@ -296,16 +296,9 @@ MonoBehaviour:
   - id: 5
     name: Gus Mafioso
     description: "Eu ia escrever uma longa descri\xE7\xE3o mas o Gus pediu pra resumir.
-      Ent\xE3o resumindo: possui 30% de chance de pedir pra voc\xEA resumir e portanto
+      Este personagem possui 30% de chance de pedir pra voc\xEA resumir e portanto
       dividir o dano pela metade."
     sprite: {fileID: 21300000, guid: 079d9d84147444a15a57a67572b25c1e, type: 3}
-  _avatars:
-  - {fileID: 21300000, guid: 17c3c1216cf3b41eb9a2b63a98990f4b, type: 3}
-  - {fileID: 21300000, guid: 5cb2b4440a95049efadd80100c9cea0e, type: 3}
-  - {fileID: 21300000, guid: 38d7b631775d24512b01a0e6f2722908, type: 3}
-  - {fileID: 21300000, guid: 06944485dc8ff4713a71c22cd43f5abb, type: 3}
-  - {fileID: 21300000, guid: 74daa12b995dc4da99505738c9289484, type: 3}
-  - {fileID: 21300000, guid: 079d9d84147444a15a57a67572b25c1e, type: 3}
 --- !u!82 &5861774531449878516
 AudioSource:
   m_ObjectHideFlags: 0

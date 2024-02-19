@@ -21,7 +21,7 @@ namespace Assets
         public bool IsNegativeAttack { get; private set; }
         public float CriticalChancesInPercentage { get; private set; }
 
-        public float Damage()
+        public Damage Damage(Avatar avatar)
         {
             bool isCritical = Random.value >= CriticalChancesInPercentage;
             float damage = Random.Range(MinDamage, MaxDamage);
@@ -29,10 +29,14 @@ namespace Assets
 
             if(isCritical)
             {
-                return damage * CriticalMultiplier * finalMultiplier;
+                damage = damage * CriticalMultiplier * finalMultiplier;
+            } 
+            else
+            {
+                damage = damage * finalMultiplier;
             }
 
-            return damage * finalMultiplier;
+            return new Damage(damage, isCritical);
         }
     }
 }

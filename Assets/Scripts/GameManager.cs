@@ -35,6 +35,12 @@ public class GameManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject _gameOverPage;
     [SerializeField] private TMP_Text _gameOverText;
 
+    [SerializeField] private AudioClip _playerTurnStartSound;
+    [SerializeField] private AudioClip _loseHpSound;
+    [SerializeField] private AudioClip _addHpSound;
+    [SerializeField] private AudioClip _gameOverSound;
+    [SerializeField] private AudioSource _audioSource;
+
     [SerializeField] private Button _addHpButton;
     [SerializeField] private Button _subtractHpButton;
 
@@ -123,11 +129,12 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         IsGameOver = true;
         var winner = _playerButtons.Single(x => !x.IsPlayerLost);
-        _gameOverText.SetText($"O ganhador puxa-saco �: {winner.Name}");
+        _gameOverText.SetText($"O ganhador puxa-saco é: {winner.Name}");
         _gameOverPage.SetActive(true);
         _hitTypeSelection.SetActive(false);
         _playerTurnStartPage.SetActive(false);
         _optionSelectionPage.SetActive(false);
+        _audioSource.PlayOneShot(_gameOverSound);
     }
 
     public void SelectPlayer(string playerId)
@@ -164,14 +171,6 @@ public class GameManager : MonoBehaviourPunCallbacks
                 newPlayer.IsLocalPlayer = true;
             _playerButtons.Add(newPlayer);
         }
-
-        //if (PhotonNetwork.IsMasterClient)
-        //{
-        //    _playerButtons.First().SetPlayerTurn(true);
-        //    _playerTurnId = _playerButtons.First().Player.UserId;
-
-        //}
-        //_players.AddRange(PhotonNetwork.CurrentRoom.Players.OrderBy(x => x.Value.NickName).Select(x => x.Value));
     }
 
     private void ClearPlayerList()
@@ -183,36 +182,11 @@ public class GameManager : MonoBehaviourPunCallbacks
         _playerButtons.Clear();
     }
 
-    //public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
-    //{
-    //    Debug.LogError($"targetPlayer.CustomProperties.ContainsKey(Constants.PlayerIsTurnProperty) = {targetPlayer.CustomProperties.ContainsKey(Constants.PlayerIsTurnProperty)}");
-    //    if(targetPlayer.CustomProperties.ContainsKey(Constants.PlayerIsTurnProperty))
-    //    {
-    //        Debug.LogError($"(bool)targetPlayer.CustomProperties[Constants.PlayerIsTurnProperty] = {(bool)targetPlayer.CustomProperties[Constants.PlayerIsTurnProperty]}");
-    //        if ((bool)targetPlayer.CustomProperties[Constants.PlayerIsTurnProperty])
-    //        {
-    //            _currentPlayerTurnName.SetText($"Agora � a vez do {targetPlayer.NickName}");
-    //            Debug.Log($"Agora � a vez do {targetPlayer.NickName}");
-
-    //            Debug.LogError("IsLocal: " + targetPlayer.IsLocal);
-    //            if (targetPlayer.IsLocal)
-    //                SetLocalPlayerTurn();
-    //            else
-    //            {
-    //                Debug.Log("It is NOT current player's turn");
-    //                _playerButtons.Single(x => x.Player.UserId == PhotonNetwork.LocalPlayer.UserId).SetPlayerTurn(false);
-    //                //_addHpButton.SetEnabled(false);
-    //                //_subtractHpButton.SetEnabled(false);
-    //            }
-    //        }
-    //    }
-    //}
-
     private void SetLocalPlayerTurn()
     {
         //_addHpButton.SetEnabled(true);
         //_subtractHpButton.SetEnabled(true);
-        _currentPlayerTurnName.SetText($"Agora � a sua vez");
+        _currentPlayerTurnName.SetText($"Agora é a sua vez");
         Debug.Log("It IS current player's turn");
         IsLocalPlayerTurn = true;
         _playerTurnStartPage.SetActive(true);
@@ -221,14 +195,6 @@ public class GameManager : MonoBehaviourPunCallbacks
         //_playerButtons.Single(x => x.Player.UserId == PhotonNetwork.LocalPlayer.UserId).SetPlayerTurn(true);
         //SetOtherPlayersTurnToFalse();
     }
-
-    //private void SetOtherPlayersTurnToFalse()
-    //{
-    //    foreach (var player in _playerButtons.Where(x => x.Player.UserId != PhotonNetwork.LocalPlayer.UserId))
-    //    {
-    //        player.SetPlayerTurn(false);
-    //    }
-    //}
 
     private void SetSelectedHitTypeInterface(HitType hitType)
     {
@@ -286,7 +252,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             indexes.Add(i);
         }
 
-        // Embaralhar os �ndices usando o algoritmo de Fisher-Yates
+        // Embaralhar os índices usando o algoritmo de Fisher-Yates
         for (int i = indexes.Count - 1; i > 0; i--)
         {
             int randomIndex = Random.Range(0, i + 1);
@@ -330,7 +296,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             PlayerButton currentTurnPlayer = _playerButtons.Single(x => x.Player.UserId == playerId);
             Debug.Log($"Current player turn {currentTurnPlayer.Player.UserId}");
             IsLocalPlayerTurn = false;
-            _currentPlayerTurnName.SetText($"Agora � a vez do {currentTurnPlayer.Name}");
+            _currentPlayerTurnName.SetText($"Agora é a vez do {currentTurnPlayer.Name}");
         }
     }
 
@@ -362,9 +328,14 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     private void ApplyDamage(AttackOption selectedOption)
     {
-        CurrentSelectedPlayer.TakeDamage(selectedOption);
+        Damage damageApplied = CurrentSelectedPlayer.TakeDamage(selectedOption);
         IsLocalPlayerTurn = false; // After applying damage this player can't play anymore
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerChooseOption, 0, new RaiseEventOptions { Receivers = ReceiverGroup.All }, SendOptions.SendReliable);
+        
+        if(damageApplied.DamageToApply > 0)
+            _audioSource.PlayOneShot(_addHpSound);
+        else
+            _audioSource.PlayOneShot(_loseHpSound);
     }
 
     private void SelectNextPlayerTurn()
