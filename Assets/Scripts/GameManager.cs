@@ -3,6 +3,7 @@ using Assets.Events;
 using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Realtime;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,6 +41,9 @@ public class GameManager : MonoBehaviourPunCallbacks
     [SerializeField] private AudioClip _addHpSound;
     [SerializeField] private AudioClip _gameOverSound;
     [SerializeField] private AudioSource _audioSource;
+    [SerializeField] private CriticalTextEffect _criticalTextEffect;
+    [SerializeField] private SkillEffect _skillEffect;
+    [SerializeField] private HitText _hitText;
 
     [SerializeField] private Button _addHpButton;
     [SerializeField] private Button _subtractHpButton;
@@ -87,6 +91,13 @@ public class GameManager : MonoBehaviourPunCallbacks
                 HitType hitType = (HitType)obj.CustomData;
                 SetSelectedHitTypeInterface(hitType);
                 break;
+            case NetworkEvents.QuestionSorted:
+                string indexesData = (string)obj.CustomData;
+                List<int> indexesSorted = indexesData.Split(',').Select(int.Parse).ToList();
+                HitType hitTypeSorted = indexesSorted.Last() == 0 ? HitType.AddHp : HitType.SubtractHp;
+                indexesSorted.RemoveAt(indexesSorted.Count - 1);
+                SetSortedQuestions(indexesSorted, hitTypeSorted);
+                break;
             case NetworkEvents.PlayerChooseOption:
                 if (PhotonNetwork.IsMasterClient)
                     SelectNextPlayerTurn();
@@ -100,6 +111,15 @@ public class GameManager : MonoBehaviourPunCallbacks
                 TakeDamageEvent takeDamageEvent = new TakeDamageEvent((string)damageData[0], (float)damageData[1]);
                 var playerThatTookDamage = _playerButtons.First(x => x.Player.UserId == takeDamageEvent.PlayerId);
                 playerThatTookDamage.SetHP(takeDamageEvent.NewHealth);
+                if(playerThatTookDamage.IsPlayerLost)
+                {
+                    _playerButtons.Remove(playerThatTookDamage);
+                    playerThatTookDamage.RemovePlayer();
+                }
+                break;
+            case NetworkEvents.PlayerActivateSkill:
+                string skillDescription = (string)obj.CustomData;
+                _skillEffect.ShowSkill(skillDescription);
                 break;
             case NetworkEvents.PlayerLost:
                 string lostPlayerId = (string)obj.CustomData;
@@ -198,30 +218,39 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     private void SetSelectedHitTypeInterface(HitType hitType)
     {
-        if(hitType == HitType.AddHp)
-        {
-            _optionSelectionPage.SetActive(true);
-            _playerTurnStartPage.SetActive(false);
-            _hitTypeSelection.SetActive(false);
+        _optionSelectionPage.SetActive(true);
+        _playerTurnStartPage.SetActive(false);
+        _hitTypeSelection.SetActive(false);
+
+        if(PhotonNetwork.IsMasterClient)
             SelectNextQuestions(hitType);
-        }
-        else
-        {
-            _optionSelectionPage.SetActive(true);
-            _playerTurnStartPage.SetActive(false);
-            _hitTypeSelection.SetActive(false);
-            SelectNextQuestions(hitType);
-        }
     }
 
     private void SelectNextQuestions(HitType hitType)
     {
         List<int> indexes = new List<int>();
-        List<AttackOption> attackOptions = new List<AttackOption>();
 
         if (hitType == HitType.AddHp)
         {
             indexes = GenerateRandomIndexes(Constants.PositiveAttacks.Count);
+        }
+        else
+        {
+            indexes = GenerateRandomIndexes(Constants.NegativeAttacks.Count);
+        }
+
+        
+        SetSortedQuestions(indexes, hitType);
+        indexes.Add((int)hitType);
+        string indexesString = string.Join(",", indexes);
+        PhotonNetwork.RaiseEvent(NetworkEvents.QuestionSorted, indexesString, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+
+    private void SetSortedQuestions(List<int> indexes, HitType hitType)
+    {
+        List<AttackOption> attackOptions = new List<AttackOption>();
+        if (hitType == HitType.AddHp)
+        {
             foreach (int index in indexes)
             {
                 attackOptions.Add(Constants.PositiveAttacks[index]);
@@ -229,13 +258,11 @@ public class GameManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            indexes = GenerateRandomIndexes(Constants.NegativeAttacks.Count);
             foreach (int index in indexes)
             {
                 attackOptions.Add(Constants.NegativeAttacks[index]);
             }
         }
-
         _attackOption1 = attackOptions[0];
         _attackOption2 = attackOptions[1];
         _attackOption3 = attackOptions[2];
@@ -255,7 +282,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         // Embaralhar os índices usando o algoritmo de Fisher-Yates
         for (int i = indexes.Count - 1; i > 0; i--)
         {
-            int randomIndex = Random.Range(0, i + 1);
+            int randomIndex = UnityEngine.Random.Range(0, i + 1);
             int temp = indexes[i];
             indexes[i] = indexes[randomIndex];
             indexes[randomIndex] = temp;
@@ -306,8 +333,6 @@ public class GameManager : MonoBehaviourPunCallbacks
         if (!CanPlay) return;
 
         ApplyDamage(_attackOption1);
-
-        //PhotonNetwork.RaiseEvent(NetworkEvents.PlayerChooseOption, 0, RaiseEventOptions.Default, SendOptions.SendReliable);
     }
 
     public void OnSecondOptionClicked()
@@ -315,7 +340,6 @@ public class GameManager : MonoBehaviourPunCallbacks
         if (!CanPlay) return;
 
         ApplyDamage(_attackOption2);
-        //PhotonNetwork.RaiseEvent(NetworkEvents.PlayerChooseOption, 0, RaiseEventOptions.Default, SendOptions.SendReliable);
 
     }
 
@@ -329,6 +353,18 @@ public class GameManager : MonoBehaviourPunCallbacks
     private void ApplyDamage(AttackOption selectedOption)
     {
         Damage damageApplied = CurrentSelectedPlayer.TakeDamage(selectedOption);
+
+        if(damageApplied.IsCritical && !damageApplied.IsSkillActivated)
+        {
+            _criticalTextEffect.ShowCriticalText();
+        }
+
+        if(CurrentSelectedPlayer.IsPlayerLost){
+            _playerButtons.Remove(CurrentSelectedPlayer);
+            CurrentSelectedPlayer.RemovePlayer();
+        }
+
+        _hitText.ShowHitText(damageApplied.DamageText(), CurrentSelectedPlayer.transform.position);
         IsLocalPlayerTurn = false; // After applying damage this player can't play anymore
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerChooseOption, 0, new RaiseEventOptions { Receivers = ReceiverGroup.All }, SendOptions.SendReliable);
         
@@ -351,6 +387,13 @@ public class GameManager : MonoBehaviourPunCallbacks
         string nextPlayerId = _playerButtons[nextPlayerIndex].Player.UserId;
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerTurnChanged, nextPlayerId, RaiseEventOptions.Default, SendOptions.SendReliable);
         SetCurrentPlayerTurn(nextPlayerId);
+    }
+
+    public void BackToMainScreen()
+    {
+        if(!IsGameOver) return;
+        PhotonNetwork.LeaveRoom();
+        PhotonNetwork.LoadLevel("Lobby");
     }
 
 }

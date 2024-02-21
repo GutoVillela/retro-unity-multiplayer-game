@@ -23,7 +23,7 @@ namespace Assets
 
         public Damage Damage(Avatar avatar)
         {
-            bool isCritical = Random.value >= CriticalChancesInPercentage;
+            bool isCritical = Random.value <= CriticalChancesInPercentage;
             float damage = Random.Range(MinDamage, MaxDamage);
             float finalMultiplier = IsNegativeAttack ? -1f : 1f;
 
@@ -36,7 +36,9 @@ namespace Assets
                 damage = damage * finalMultiplier;
             }
 
-            return new Damage(damage, isCritical);
+            bool isSkillActivated = Random.value <= avatar.skillActivationChanceInPercentage;
+
+            return new Damage(damage, isCritical, CriticalMultiplier, isSkillActivated, avatar.skillActivationDescription);
         }
     }
 }

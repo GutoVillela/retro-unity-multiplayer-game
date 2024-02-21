@@ -1,3 +1,4 @@
+using Assets;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Collections.Generic;
@@ -32,7 +33,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     [SerializeField] private DialogBox _dialogBox;
 
     private bool _isReady = false;
-    private const string PlayerIsReadyProperty = "IsReady";
+
     ExitGames.Client.Photon.Hashtable _playerProperties = new ExitGames.Client.Photon.Hashtable();
 
     private void Start()
@@ -177,7 +178,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         playerItem.HideArrows();
 
         _isReady = true;
-        _playerProperties[PlayerIsReadyProperty] = _isReady;
+        _playerProperties[Constants.PlayerIsReadyProperty] = _isReady;
         PhotonNetwork.SetPlayerCustomProperties(_playerProperties);
     }
 
@@ -187,13 +188,13 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         if (player != null)
         {
             bool isReady = false;
-            if (targetPlayer.CustomProperties.ContainsKey(PlayerIsReadyProperty))
+            if (targetPlayer.CustomProperties.ContainsKey(Constants.PlayerIsReadyProperty))
             {
-                isReady = (bool)targetPlayer.CustomProperties[PlayerIsReadyProperty];
+                isReady = (bool)targetPlayer.CustomProperties[Constants.PlayerIsReadyProperty];
             }
             else
             {
-                _playerProperties[PlayerIsReadyProperty] = isReady;
+                _playerProperties[Constants.PlayerIsReadyProperty] = isReady;
             }
             if (isReady)
                 player.Ready();

@@ -120,5 +120,15 @@ public class PlayerItem : MonoBehaviourPunCallbacks
         {
             _playerProperties[Constants.PlayerAvatarProperty] = 0;
         }
+
+        if(player.CustomProperties.ContainsKey(Constants.PlayerIsReadyProperty))
+        {
+            IsReady = (bool)player.CustomProperties[Constants.PlayerIsReadyProperty];
+            _playerProperties[Constants.PlayerIsReadyProperty] = (bool)player.CustomProperties[Constants.PlayerIsReadyProperty];
+        }
+        else
+        {
+            _playerProperties[Constants.PlayerIsReadyProperty] = false;
+        }
     }
 }

@@ -87,16 +87,34 @@ public class PlayerButton : MonoBehaviour
     public Damage TakeDamage(AttackOption attackOption)
     {
         var damage = attackOption.Damage(PlayerAvatar);
+
+        if (damage.IsSkillActivated)
+        {
+            Debug.Log($"Player {Name} activated skill: {damage.SkillDescription}");
+            damage = PlayerAvatar.skill(damage);
+            PhotonNetwork.RaiseEvent(NetworkEvents.PlayerActivateSkill, PlayerAvatar.skillActivationDescription, new RaiseEventOptions { Receivers = ReceiverGroup.All }, SendOptions.SendReliable);
+        }
+
         HealthPoints += damage.DamageToApply;
         TakeDamageEvent takeDamageEvent = new TakeDamageEvent(Player.UserId, _healthPoints);
         object[] content = new object[] { takeDamageEvent.PlayerId, takeDamageEvent.NewHealth };
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerTakeDamage, content, RaiseEventOptions.Default, SendOptions.SendReliable);
+        //CheckPlayerLoss();
         return damage;
     }
+
+    // private void CheckPlayerLoss()
+    // {
+    //     if(HealthPoints <= 0)
+    //     {
+    //         NotifyPlayerLost();
+    //     }
+    // }
 
     public void SetHP(float hp)
     {
         HealthPoints = hp;
+        //CheckPlayerLoss();
         Debug.Log($"Player {Name}'s new HP: {hp}");
     }
 
@@ -107,6 +125,12 @@ public class PlayerButton : MonoBehaviour
         Debug.Log($"Clicked on player {Name}");
         _gameManager.SelectPlayer(Player.UserId);
         PhotonNetwork.RaiseEvent(NetworkEvents.PlayerSelectedOtherPlayer, Player.UserId, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+
+    public void RemovePlayer()
+    {
+        gameObject.SetActive(false);
+        Destroy(gameObject);
     }
 
     //public void SetPlayerTurn(bool isPlayerTurn)
